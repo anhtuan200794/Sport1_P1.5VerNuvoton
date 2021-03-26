@@ -42,6 +42,32 @@ void InitialUART0_Timer1(UINT32 u32Baudrate)    //T1M = 1, SMOD = 1
 		set_TI;						//For printf function must setting TI = 1
 }
 //---------------------------------------------------------------
+void UART0_Disable(void)
+{
+    clr_ES;
+}
+
+//---------------------------------------------------------------
+void UART0_Enable(void)
+{
+    set_PS;
+    set_PSH;
+    set_ES;
+}
+//---------------------------------------------------------------
+void UART1_Disable(void)
+{
+    clr_ES_1;
+}
+
+//---------------------------------------------------------------
+void UART1_Enable(void)
+{
+    clr_PS_1;
+    clr_PSH_1;
+    set_ES_1;
+}
+//---------------------------------------------------------------
 void InitialUART0_Timer3(UINT32 u32Baudrate) //use timer3 as Baudrate generator
 {
 		P06_Quasi_Mode;		//Setting UART pin as Quasi mode for transmit
