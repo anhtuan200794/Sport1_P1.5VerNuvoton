@@ -1,76 +1,93 @@
+
+/*
+ * Copyright (c) 2021
+ * VitechSolutions
+ * All Rights Reserved
+ *
+ *
+ * Description:
+ *
+ * Author: TuanNA
+ *
+ */
 #include "N76E003.h"
 #include "Common.h"
 #include "Delay.h"
 #include "SFR_Macro.h"
 #include "Function_define.h"
+#include "string.h"
 
-#define BUFFER_SIZE		16
-UINT8  temp,temp1;
-UINT16 u16CNT=0,u16CNT1=0;
-bit riflag;
+#define UART0_BAUD 9600
+#define UART1_BAUD 9600
+#define MOTO P10
 
-void MODIFY_Hirc166(void)
+char *motorStart = "MOTOR_START\r\n"; //12
+char *motorStop = "MOTOR_STOP\r\n";   //11
+UINT8 PreviousStatus = 0;
+
+void UART0_SendData(UINT8 *buff, UINT8 len) // USB2COM port
 {
-    UINT8 xdata hircmap0,hircmap1;
-    UINT16 xdata trimvalue16bit;
-    // Check if power on reset, modify HIRC 
-    if ((PCON&SET_BIT4)==SET_BIT4)				
+    UINT8 i;
+    for (i = 0; i < len; i++)
     {
-        hircmap0 = RCTRIM0;
-        hircmap1 = RCTRIM1;
-        trimvalue16bit = ((hircmap0<<1)+(hircmap1&0x01));
-        trimvalue16bit = trimvalue16bit - 15;
-        hircmap1 = trimvalue16bit&0x01;
-        hircmap0 = trimvalue16bit>>1;
-        TA=0XAA;
-        TA=0X55;
-        RCTRIM0 = hircmap0;
-        TA=0XAA;
-        TA=0X55;
-        RCTRIM1 = hircmap1;
-        // Clear power on flag 
-        PCON &= CLR_BIT4;
+        Send_Data_To_UART0(buff[i]);
+        Timer2_Delay500us(1);
     }
 }
 
-void SerialPort1_ISR(void) interrupt 15 
+void main(void)
 {
-    if (RI_1==1) 
-    {                                       /* if reception occur */
-        clr_RI_1;                             /* clear reception flag for next reception */
-        Send_Data_To_UART0(SBUF_1);
-    }
-}
-
-void SerialPort0_ISR(void) interrupt 4
-{
-    if(RI == 1)
-    {
-        clr_RI;
-        Send_Data_To_UART1(SBUF);
-
-    }
-}
-
-void main (void)
-{
-    MODIFY_Hirc166();
-    InitialUART0_Timer1(9600);
-    InitialUART1_Timer3(9600);
-    
-	//set_ES_1;					//For interrupt enable
-    set_ES;
-	set_EA;
+    P10_Quasi_Mode;
+    InitialUART0_Timer1(UART0_BAUD); //initialization
+    InitialUART1_Timer3(UART1_BAUD);
+    set_ES; //For interrupt enable
+    set_ES_1;
+    set_EA;
+    Timer0_Delay1ms(1000);
     while (1)
     {
-        // temp = Receive_Data_From_UART0();
-        // Send_Data_To_UART1(temp);
-        temp1 = Receive_Data_From_UART1();
-        Send_Data_To_UART0(temp1);
-			//Send_Data_To_UART1(0x68);
-        //Timer2_Delay500us(10000);
-        /* code */
-			
+        if (MOTO != 0 && PreviousStatus == 0)
+        {
+            clr_ES;
+            UART0_SendData((UINT8 *)motorStart, strlen(motorStart));
+            PreviousStatus = 1;
+            set_ES;
+        }
+        else if (MOTO == 0 && PreviousStatus == 1)
+        {
+            clr_ES;
+            UART0_SendData((UINT8 *)motorStop, strlen(motorStop));
+            PreviousStatus = 0;
+            set_ES;
+        }
     }
-    
+}
+
+void SerialPort_ISR(void) interrupt 4
+{
+    if (RI)
+    {
+        clr_RI;
+        clr_ES_1;
+        Send_Data_To_UART1(SBUF);
+        set_ES_1;
+    }
+    if (TI)
+    {
+        clr_TI;
+    }
+}
+void SerialPort1_ISR(void) interrupt 15
+{
+    if (RI_1)
+    {
+        clr_RI_1;
+        clr_ES;
+        Send_Data_To_UART0(SBUF_1);
+        set_ES;
+    }
+    if (TI_1)
+    {
+        clr_TI_1;
+    }
 }

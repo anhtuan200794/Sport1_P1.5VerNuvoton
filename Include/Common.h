@@ -32,6 +32,9 @@ UINT8 Receive_Data_From_UART0(void);
 void  Send_Data_To_UART1(UINT8 c);
 UINT8 Receive_Data_From_UART1(void);
 void  InitialUART1(UINT32 u32Baudrate);
-
+void  UART0_Enable(void);
+void  UART0_Disable(void);
+void  UART1_Enable(void);
+void  UART1_Disable(void);
 
 extern bit BIT_TMP;

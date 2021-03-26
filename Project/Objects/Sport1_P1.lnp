@@ -1,7 +1,0 @@
-".\Objects\main.obj",
-".\Objects\Common.obj",
-".\Objects\Delay.obj",
-".\Objects\STARTUP.obj" 
-TO ".\Objects\Sport1_P1.5VerNuvoton" 
-PRINT(".\Listings\Sport1_P1.m51") RAMSIZE(256) 
-DISABLEWARNING (16) 
