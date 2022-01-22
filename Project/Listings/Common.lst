@@ -1,0 +1,197 @@
+C51 COMPILER V9.60.0.0   COMMON                                                            01/22/2022 15:57:39 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE COMMON
+OBJECT MODULE PLACED IN .\Objects\Common.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\Common\Common.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Include) DEFINE(FO
+                    -SC_160000) DEBUG OBJECTEXTEND PRINT(.\Listings\Common.lst) TABS(2) OBJECT(.\Objects\Common.obj)
+
+line level    source
+
+   1          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   2          /*                                                                                                        
+             - */
+   3          /* Copyright(c) 2016 Nuvoton Technology Corp. All rights reserved.                                        
+             - */
+   4          /*                                                                                                        
+             - */
+   5          /*--------------------------------------------------------------------------------------------------------
+             --*/
+   6          
+   7          //********************************************************************************************************
+             -***
+   8          //  Nuvoton Technoledge Corp. 
+   9          //  Website: http://www.nuvoton.com
+  10          //  E-Mail : MicroC-8bit@nuvoton.com
+  11          //  Date   : Apr/21/2016
+  12          //********************************************************************************************************
+             -***
+  13          
+  14          #include "N76E003.h"
+  15          #include "Common.h"
+  16          #include "Delay.h"
+  17          #include "SFR_Macro.h"
+  18          #include "Function_define.h"
+  19          
+  20          //----------------------------------------------------------------------------------
+  21          // UART0 baud rate initial setting 
+  22          //----------------------------------------------------------------------------------
+  23          void InitialUART0_Timer1(UINT32 u32Baudrate)    //T1M = 1, SMOD = 1
+  24          {
+  25   1          P06_Quasi_Mode;   //Setting UART pin as Quasi mode for transmit
+  26   1          P07_Quasi_Mode;   //Setting UART pin as Quasi mode for transmit
+  27   1        
+  28   1          SCON = 0x50;      //UART0 Mode1,REN=1,TI=1
+  29   1          TMOD |= 0x20;     //Timer1 Mode1
+  30   1          
+  31   1          set_SMOD;         //UART0 Double Rate Enable
+  32   1          set_T1M;
+  33   1          clr_BRCK;         //Serial port 0 baud rate clock source = Timer1
+  34   1       
+  35   1      #ifdef FOSC_160000
+  36   1          TH1 = 256 - (1000000/u32Baudrate+1);               /*16 MHz */
+  37   1      #endif      
+  38   1      #ifdef FOSC_166000
+                  TH1 = 256 - (1037500/u32Baudrate);                 /*16.6 MHz */
+              #endif
+  41   1          set_TR1;
+  42   1          set_TI;           //For printf function must setting TI = 1
+  43   1      }
+  44          //---------------------------------------------------------------
+  45          void UART0_Disable(void)
+  46          {
+  47   1          clr_ES;
+C51 COMPILER V9.60.0.0   COMMON                                                            01/22/2022 15:57:39 PAGE 2   
+
+  48   1      }
+  49          
+  50          //---------------------------------------------------------------
+  51          void UART0_Enable(void)
+  52          {
+  53   1          set_PS;
+  54   1          set_PSH;
+  55   1          set_ES;
+  56   1      }
+  57          //---------------------------------------------------------------
+  58          void UART1_Disable(void)
+  59          {
+  60   1          clr_ES_1;
+  61   1      }
+  62          
+  63          //---------------------------------------------------------------
+  64          void UART1_Enable(void)
+  65          {
+  66   1          clr_PS_1;
+  67   1          clr_PSH_1;
+  68   1          set_ES_1;
+  69   1      }
+  70          //---------------------------------------------------------------
+  71          void InitialUART0_Timer3(UINT32 u32Baudrate) //use timer3 as Baudrate generator
+  72          {
+  73   1          P06_Quasi_Mode;   //Setting UART pin as Quasi mode for transmit
+  74   1          P07_Quasi_Mode;   //Setting UART pin as Quasi mode for transmit 
+  75   1        
+  76   1          SCON = 0x50;     //UART0 Mode1,REN=1,TI=1
+  77   1          set_SMOD;        //UART0 Double Rate Enable
+  78   1          T3CON &= 0xF8;   //T3PS2=0,T3PS1=0,T3PS0=0(Prescale=1)
+  79   1          set_BRCK;        //UART0 baud rate clock source = Timer3
+  80   1      
+  81   1      #ifdef FOSC_160000
+  82   1          RH3    = HIBYTE(65536 - (1000000/u32Baudrate)-1);     /*16 MHz */
+  83   1          RL3    = LOBYTE(65536 - (1000000/u32Baudrate)-1);     /*16 MHz */
+  84   1      #endif
+  85   1      #ifdef FOSC_166000
+                  RH3    = HIBYTE(65536 - (1037500/u32Baudrate));       /*16.6 MHz */
+                  RL3    = LOBYTE(65536 - (1037500/u32Baudrate));       /*16.6 MHz */
+              #endif
+  89   1          set_TR3;         //Trigger Timer3
+  90   1          set_TI;          //For printf function must setting TI = 1
+  91   1      }
+  92          
+  93          UINT8 Receive_Data_From_UART0(void)
+  94          {
+  95   1          UINT8 c;
+  96   1          while (!RI);
+  97   1          c = SBUF;
+  98   1          RI = 0;
+  99   1          return (c);
+ 100   1      }
+ 101          
+ 102          void Send_Data_To_UART0 (UINT8 c)
+ 103          {
+ 104   1          TI = 0;
+ 105   1          SBUF = c;
+ 106   1          while(TI==0);
+ 107   1      }
+ 108          
+ 109          
+C51 COMPILER V9.60.0.0   COMMON                                                            01/22/2022 15:57:39 PAGE 3   
+
+ 110          //----------------------------------------------------------------------------------
+ 111          // UART1 baud rate initial setting 
+ 112          //----------------------------------------------------------------------------------
+ 113          void InitialUART1_Timer3(UINT32 u32Baudrate) //use timer3 as Baudrate generator
+ 114          {
+ 115   1          P02_Quasi_Mode;   //Setting UART pin as Quasi mode for transmit
+ 116   1          P16_Quasi_Mode;   //Setting UART pin as Quasi mode for transmit
+ 117   1        
+ 118   1          SCON_1 = 0x50;    //UART1 Mode1,REN_1=1,TI_1=1
+ 119   1          T3CON = 0x08;     //T3PS2=0,T3PS1=0,T3PS0=0(Prescale=1), UART1 in MODE 1
+ 120   1          clr_BRCK;
+ 121   1        
+ 122   1      #ifdef FOSC_160000
+ 123   1          RH3    = HIBYTE(65536 - (1000000/u32Baudrate)-1);     /*16 MHz */
+ 124   1          RL3    = LOBYTE(65536 - (1000000/u32Baudrate)-1);     /*16 MHz */
+ 125   1      #endif
+ 126   1      #ifdef FOSC_166000
+                  RH3    = HIBYTE(65536 - (1037500/u32Baudrate));       /*16.6 MHz */
+                  RL3    = LOBYTE(65536 - (1037500/u32Baudrate));       /*16.6 MHz */
+              #endif
+ 130   1          set_TR3;         //Trigger Timer3
+ 131   1      }
+ 132          
+ 133          UINT8 Receive_Data_From_UART1(void)
+ 134          {
+ 135   1          UINT8 c;
+ 136   1          
+ 137   1          while (!RI_1);
+ 138   1          c = SBUF_1;
+ 139   1          RI_1 = 0;
+ 140   1          return (c);
+ 141   1      }
+ 142          
+ 143          void Send_Data_To_UART1 (UINT8 c)
+ 144          {
+ 145   1          TI_1 = 0;
+ 146   1          SBUF_1 = c;
+ 147   1          while(TI_1==0);
+ 148   1      }
+ 149          
+ 150          
+ 151          /*==========================================================================*/
+ 152          #ifdef SW_Reset
+              void SW_Reset(void)
+              {
+                  TA = 0xAA;
+                  TA = 0x55;
+                  set_SWRST;
+              }
+              #endif
+ 160          /*==========================================================================*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    319    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.60.0.0   COMMON                                                            01/22/2022 15:57:39 PAGE 4   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
