@@ -19,11 +19,11 @@
 
 #define UART0_BAUD 9600
 #define UART1_BAUD 9600
-#define MOTO P10
 
-char *motorStart = "MOTOR_START\r\n"; //12
-char *motorStop = "MOTOR_STOP\r\n";   //11
-UINT8 PreviousStatus = 0;
+char *motorStart = "MOTOR_START\r\n"; // 12
+char *motorStop = "MOTOR_STOP\r\n";   // 11
+volatile UINT8 MotorStatus = 0;
+volatile UINT8 BeepCount = 0;
 
 void UART0_SendData(UINT8 *buff, UINT8 len) // USB2COM port
 {
@@ -38,26 +38,33 @@ void UART0_SendData(UINT8 *buff, UINT8 len) // USB2COM port
 void main(void)
 {
     P10_Quasi_Mode;
-    InitialUART0_Timer1(UART0_BAUD); //initialization
+    InitialUART0_Timer1(UART0_BAUD); // initialization
     InitialUART1_Timer3(UART1_BAUD);
-    set_ES; //For interrupt enable
+    P17_Input_Mode;
+    set_P1S_7;
+    set_IT1;
+    set_EX1;
+    set_ES; // For interrupt enable
     set_ES_1;
     set_EA;
     Timer0_Delay1ms(1000);
     while (1)
     {
-        if (MOTO != 0 && PreviousStatus == 0)
+        if (BeepCount >= 3 && MotorStatus == 0)
         {
             clr_ES;
             UART0_SendData((UINT8 *)motorStart, strlen(motorStart));
-            PreviousStatus = 1;
+            Timer0_Delay1ms(2000);
+            MotorStatus = 1;
+            BeepCount = 0;
             set_ES;
         }
-        else if (MOTO == 0 && PreviousStatus == 1)
+        else if (BeepCount > 0 && MotorStatus == 1)
         {
             clr_ES;
             UART0_SendData((UINT8 *)motorStop, strlen(motorStop));
-            PreviousStatus = 0;
+            MotorStatus = 0;
+            BeepCount = 0;
             set_ES;
         }
     }
@@ -90,4 +97,9 @@ void SerialPort1_ISR(void) interrupt 15
     {
         clr_TI_1;
     }
+}
+
+void EXT_INT1(void) interrupt 2
+{
+    BeepCount++;
 }
